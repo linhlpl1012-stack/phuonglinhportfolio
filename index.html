@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linh's Treasure Hunt - Digital Portfolio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        game: ['Press Start 2P', 'cursive'],
+                    },
+                    colors: {
+                        army: {
+                            50: '#f2f5f0',
+                            100: '#e1e8dc',
+                            200: '#c5d2bc',
+                            300: '#a1b594',
+                            400: '#799469',
+                            500: '#587349',
+                            600: '#435937',
+                            700: '#35472b',
+                            800: '#2b3924',
+                            900: '#11170e',
+                            950: '#050804',
+                        },
+                        amber: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Pixel Game custom styles */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 20, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.4) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.05),
+                rgba(0, 255, 0, 0.02),
+                rgba(0, 0, 255, 0.05)
+            );
+            background-size: 100% 4px, 6px 100%;
+        }
+        .pixel-corners {
+            clip-path: polygon(
+                0px 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0px,
+                calc(100% - 8px) 0px, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+                100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+                8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0px calc(100% - 8px)
+            );
+        }
+        .text-glow-amber {
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.9), 2px 2px 0px #000;
+        }
+        .text-shadow-game {
+            text-shadow: 3px 3px 0px #000;
+        }
+        .text-shadow-heavy {
+            text-shadow: 2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000;
+        }
+        
+        /* Sparkle & XP Popup animations */
+        @keyframes floatXp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+        }
+        .animate-float-xp {
+            animation: floatXp 1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+        }
+
+        @keyframes particleBurst {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0); opacity: 0; }
+        }
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            font-size: 14px;
+            animation: particleBurst 0.8s ease-out forwards;
+        }
+
+        /* Scanline flickering */
+        @keyframes crtFlicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1; }
+            100% { opacity: 0.99; }
+        }
+        .crt-panel {
+            animation: crtFlicker 0.15s infinite;
+        }
+    </style>
+</head>
+<body class="bg-[#050804] text-white font-sans min-h-screen relative overflow-x-hidden selection:bg-army-700 selection:text-white">
+
+    <!-- Video Background (Không filter màu, dùng làm khung viền) -->
+    <div class="fixed inset-0 -z-30 w-full h-full overflow-hidden pointer-events-none">
+        <video class="w-full h-full object-cover" autoplay loop muted playsinline>
+            <source src="back.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <!-- Scanline retro overlay -->
+    <div class="fixed inset-0 -z-20 pointer-events-none scanlines opacity-50"></div>
+
+    <!-- HUD Header / Menu -->
+    <header class="sticky top-0 z-50 bg-[#070b06] border-b-4 border-[#3e5336] transition-all duration-300 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <a href="#intro" class="flex items-center space-x-3 group">
+                <div class="w-10 h-10 bg-army-950 border-2 border-amber-500 flex items-center justify-center pixel-corners group-hover:scale-105 transition-all">
+                    <span class="text-amber-500 font-game text-xs animate-pulse">⚓</span>
+                </div>
+                <div>
+                    <span class="font-game text-xs tracking-wider text-amber-500 block">LINH'S QUEST</span>
+                    <span class="text-[9px] font-mono text-army-300 tracking-widest uppercase">Ancient Treasury v3.1</span>
+                </div>
+            </a>
+
+            <!-- Desktop Menu -->
+            <nav class="hidden lg:flex items-center space-x-6 font-mono text-xs">
+                <a href="#intro" class="hover:text-amber-500 text-white transition-colors flex items-center gap-1">
+                    <span class="text-amber-500">[1]</span> Khởi động
+                </a>
+                <a href="#objectives" class="hover:text-amber-500 text-white transition-colors flex items-center gap-1">
+                    <span class="text-amber-500">[2]</span> Sổ tay nhiệm vụ
+                </a>
+                <a href="#character" class="hover:text-amber-500 text-white transition-colors flex items-center gap-1">
+                    <span class="text-amber-500">[3]</span> Nhà Thám hiểm
+                </a>
+                <a href="#campaign" class="hover:text-amber-500 text-white transition-colors flex items-center gap-1">
+                    <span class="text-amber-500">[4]</span> 6 thử thách
+                </a>
+                <a href="#achievements" class="hover:text-amber-500 text-white transition-colors flex items-center gap-1">
+                    <span class="text-amber-500">[5]</span> Tổng kết
+                </a>
+                <a href="https://drive.google.com/drive/folders/1oOznpR55nAJstH1zIReyjsb2EnMQgaKo?usp=drive_link" target="_blank" class="px-4 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-[#050804] border-2 border-amber-500 transition-all pixel-corners flex items-center gap-2 font-bold text-xs uppercase tracking-wider shadow-lg">
+                    <span>Xem bài tập trên GG Drive</span>
+                </a>
+            </nav>
+
+            <!-- Progress HUD widget -->
+            <div class="flex items-center space-x-4">
+                <div class="text-right hidden sm:block font-mono text-xs">
+                    <div class="text-army-300">Treasure Progress:</div>
+                    <div class="text-amber-400 font-bold animate-pulse text-shadow-heavy" id="progress-text">0% Completed</div>
+                </div>
+                <div class="w-20 h-5 bg-army-950 border border-[#3e5336] rounded p-[2px] hidden sm:block">
+                    <div class="h-full bg-amber-500 transition-all duration-500" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-32">
+
+        <!-- SECTION 1: INTRO (Trang chủ) -->
+        <section id="intro" class="min-h-[70vh] flex flex-col justify-center items-center text-center space-y-8 py-12">
+            <div class="space-y-4 max-w-4xl bg-[#070b06] border-4 border-[#3e5336] p-8 pixel-corners shadow-2xl crt-panel">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-army-950 border-2 border-amber-500 text-amber-500 font-game text-[9px] uppercase tracking-widest pixel-corners">
+                    <span class="animate-ping">✦</span> QUEST START: FIND THE DIGITAL SCROLL
+                </div>
+                <h1 class="font-game text-lg md:text-xl lg:text-2xl text-slate-100 leading-relaxed text-shadow-heavy select-none">
+                    HÀNH TRÌNH TÌM KIẾM KHO BÁU:<br>
+                    <span class="text-amber-500 text-glow-amber">CƠ SỞ SỐ & PHÁP THUẬT AI</span>
+                </h1>
+                <p class="text-xs md:text-sm text-slate-100 max-w-2xl mx-auto font-mono leading-relaxed">
+                    Theo dấu Nhà Săn Kho Báu Lê Phương Linh tiến vào 6 hầm ngục di sản, giải mã các câu đố công nghệ và chế ngự trí tuệ nhân tạo để phục dựng cổ vật Mật quyển Học thuật vĩ đại.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="#objectives" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-[#050804] font-game text-[9px] tracking-wider transition-all transform hover:-translate-y-1 pixel-corners shadow-lg shadow-amber-500/30">
+                    Bắt đầu nhiệm vụ [Enter]
+                </a>
+                <a href="https://drive.google.com/drive/folders/1oOznpR55nAJstH1zIReyjsb2EnMQgaKo?usp=drive_link" target="_blank" class="px-6 py-3 bg-army-950 hover:bg-[#1b2614] text-white border-2 border-amber-500 font-mono text-xs tracking-wider transition-all transform hover:-translate-y-1 pixel-corners flex items-center gap-2">
+                    Xem bài tập trên GG Drive
+                </a>
+            </div>
+        </section>
+
+        <!-- SECTION 2: PORTFOLIO OBJECTIVES (Sổ tay nhiệm vụ) -->
+        <section id="objectives" class="scroll-mt-24">
+            <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 md:p-8 pixel-corners shadow-2xl space-y-6">
+                <div class="border-b-4 border-[#3e5336] pb-4">
+                    <span class="font-mono text-xs text-amber-500 tracking-wider uppercase block">// Quest Objective</span>
+                    <h2 class="font-game text-sm md:text-base text-slate-100 text-shadow-heavy">I. Sổ tay Nhiệm vụ (Objectives)</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-army-950 border-2 border-army-800 p-5 pixel-corners space-y-3">
+                        <div class="text-amber-500 font-game text-[8px]">[Trial 01]</div>
+                        <h4 class="font-bold text-sm text-slate-100 font-game">CỦNG CỐ CƠ SỞ</h4>
+                        <p class="text-xs text-slate-200 leading-relaxed font-mono">
+                            Hệ thống hóa mọi thao tác tệp tin số, cấu trúc tài nguyên dữ liệu ngăn nắp để tạo nền móng vững chắc trước các cuộc thám hiểm học thuật tiếp theo.
+                        </p>
+                    </div>
+
+                    <div class="bg-army-950 border-2 border-army-800 p-5 pixel-corners space-y-3">
+                        <div class="text-amber-500 font-game text-[8px]">[Trial 02]</div>
+                        <h4 class="font-bold text-sm text-slate-100 font-game">ĐỒNG HÀNH AI</h4>
+                        <p class="text-xs text-slate-200 leading-relaxed font-mono">
+                            Tôi luyện nghệ thuật khai thác các thuật toán tạo sinh thông minh một cách sáng tạo, trung thực và liêm chính trong mảng nghiên cứu ngôn ngữ, văn hóa dân tộc.
+                        </p>
+                    </div>
+
+                    <div class="bg-army-950 border-2 border-army-800 p-5 pixel-corners space-y-3">
+                        <div class="text-amber-500 font-game text-[8px]">[Trial 03]</div>
+                        <h4 class="font-bold text-sm text-slate-100 font-game">MỞ KHÓA BÁU VẬT</h4>
+                        <p class="text-xs text-slate-200 leading-relaxed font-mono">
+                            Kiến tạo một cuốn nhật ký trực tuyến RPG hoành tráng, ghi dấu hành trình nâng tầm năng lực số và định vị bản thân trong thời đại cách mạng trí tuệ nhân tạo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: CHARACTER PROFILE (Giới thiệu bản thân) -->
+        <section id="character" class="scroll-mt-24">
+            <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 md:p-8 pixel-corners shadow-2xl relative overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <!-- Column 1: Avatar Card -->
+                    <div class="lg:col-span-5 flex flex-col items-center space-y-4">
+                        <div class="relative w-60 h-60 md:w-72 md:h-72 bg-army-950 p-2 border-4 border-amber-500 pixel-corners shadow-inner group">
+                            <div class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-amber-500"></div>
+                            <div class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-amber-500"></div>
+                            <div class="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-amber-500"></div>
+                            <div class="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-amber-500"></div>
+                            
+                            <!-- Bỏ hoàn toàn grayscale -->
+                            <img src="Hình 1.jpg" alt="Lê Phương Linh" class="w-full h-full object-cover pixel-corners transition-all duration-500 object-center">
+                            
+                            <div class="absolute bottom-2 left-2 right-2 bg-army-900/90 border border-army-800 py-1 px-2 text-center">
+                                <span class="font-game text-[7px] tracking-wide text-amber-500">CULTURAL ARCHEOLOGIST</span>
+                            </div>
+                        </div>
+
+                        <!-- Info Table -->
+                        <div class="w-full max-w-sm bg-army-950 border-2 border-[#3e5336] p-4 font-mono text-xs space-y-2">
+                            <div class="flex justify-between border-b border-army-800 pb-1">
+                                <span class="text-army-300 font-bold">HỌ VÀ TÊN:</span>
+                                <span class="text-amber-400 font-bold">Lê Phương Linh</span>
+                            </div>
+                            <div class="flex justify-between border-b border-army-800 pb-1">
+                                <span class="text-army-300 font-bold">MÃ SỐ SINH VIÊN:</span>
+                                <span class="text-white">25040325</span>
+                            </div>
+                            <div class="flex justify-between border-b border-army-800 pb-1">
+                                <span class="text-army-300 font-bold">NGÀNH HỌC:</span>
+                                <span class="text-white text-right">Tiếng Việt và Văn hoá Việt Nam</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-army-300 font-bold">TRƯỜNG HỌC:</span>
+                                <span class="text-white">Đại học Ngoại ngữ - ĐHQGHN</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Bio & RPG Stats Sheet -->
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="space-y-2">
+                            <span class="font-mono text-xs text-amber-500 tracking-wider uppercase">// Party Character Sheet</span>
+                            <h2 class="font-game text-sm md:text-base text-slate-100 text-shadow-heavy">II. Hồ Sơ Người Săn Kho Báu</h2>
+                        </div>
+
+                        <p class="text-slate-200 text-xs md:text-sm leading-relaxed font-mono">
+                            Đam mê say đắm vẻ đẹp kỳ vĩ của ngôn từ và bản sắc dân tộc Việt Nam. Tôi định vị mình là một nhà thám hiểm, thâm nhập vào ranh giới công nghệ để biến những công cụ AI tối tân nhất thành vũ khí phục dựng và bảo tồn văn hóa truyền thống.
+                        </p>
+
+                        <!-- RPG Health & Mana Bars style -->
+                        <div class="space-y-4">
+                            <h3 class="font-game text-[9px] text-army-300 tracking-widest">// CHỈ SỐ NHÂN VẬT (STATUS)</h3>
+                            
+                            <div class="space-y-3 text-xs font-mono">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-white font-bold">HP [Tư duy văn hoá]</span>
+                                        <span class="text-amber-400 font-bold">95 / 95</span>
+                                    </div>
+                                    <div class="h-4 bg-army-950 border-2 border-army-700 p-[2px] pixel-corners">
+                                        <div class="h-full bg-red-600" style="width: 100%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-white font-bold">MP [Sức mạnh Kỹ năng số]</span>
+                                        <span class="text-amber-400 font-bold">90 / 90</span>
+                                    </div>
+                                    <div class="h-4 bg-army-950 border-2 border-army-700 p-[2px] pixel-corners">
+                                        <div class="h-full bg-blue-600" style="width: 100%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-white font-bold">STAMINA [Bảo chứng liêm chính]</span>
+                                        <span class="text-amber-400 font-bold">100 / 100</span>
+                                    </div>
+                                    <div class="h-4 bg-army-950 border-2 border-army-700 p-[2px] pixel-corners">
+                                        <div class="h-full bg-green-600" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: THE ADVENTURE MAP (6 thử thách) -->
+        <section id="campaign" class="scroll-mt-24 space-y-12">
+            <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 md:p-8 pixel-corners text-center space-y-4 shadow-2xl">
+                <span class="font-mono text-xs uppercase text-amber-500 tracking-widest block">// Treasure Map Ruins</span>
+                <h2 class="font-game text-sm md:text-base text-slate-100 text-shadow-heavy">III. Bản Đồ Di Tích: 6 Thử Thách Cổ Đại</h2>
+                <p class="text-xs md:text-sm text-slate-100 max-w-2xl mx-auto leading-relaxed font-mono">
+                    Để thu hồi mật thư AI hoàn chỉnh, bạn phải đột phá thành công qua 6 ngôi đền di tích dưới đây. Hãy click "Xác nhận vượt ải" và đón nhận hiệu ứng mở khóa đặc trưng.
+                </p>
+                <div class="pt-2">
+                    <a href="https://drive.google.com/drive/folders/1oOznpR55nAJstH1zIReyjsb2EnMQgaKo?usp=drive_link" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-army-950 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-game text-[8px] uppercase tracking-wider pixel-corners shadow-lg">
+                        <span>MỞ KHO BÁU BÀI TẬP ĐẦY ĐỦ TRÊN DRIVE</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Vertical Timeline -->
+            <div class="relative border-l-4 border-[#3e5336] ml-4 md:ml-32 space-y-12">
+                
+                <!-- QUEST 1 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-1">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-1">1</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 01] DI TÍCH WINDOWS</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +150</span>
+                                <button onclick="toggleLevel(1, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-1">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 1: Làm chủ Bản đồ File & Thư mục</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Thiết lập trật tự không gian dữ liệu bằng cấu trúc file, dọn dẹp hệ lưu trữ rối loạn trong ổ đĩa để chuẩn bị nền tảng thám hiểm học thuật.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(1)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1AT-ip5nqlHI9aROw4JH9RT0a8cnlyDDe/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 1]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEST 2 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-2">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-2">2</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 02] ĐỀN THỜ THẨM ĐỊNH</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +200</span>
+                                <button onclick="toggleLevel(2, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-2">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 2: Thu thập Cổ thư Tín ngưỡng Thái Mai Châu</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Đột phá vào đại thư viện học thuật, lọc bỏ nhiễu thông tin để lưu trữ và đánh giá 10 nguồn thư tịch học thuật giá trị cao bằng tiêu chuẩn CARS.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(2)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1zBiq4jD8S_47GYwOhyrWlCJuEujWhYmQ/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 2]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEST 3 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-3">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-3">3</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 03] THỬ THÁCH THẦN CHÚ PROMPT</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +200</span>
+                                <button onclick="toggleLevel(3, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-3">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 3: Khai thức Luyện ngữ Prompt AI</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Thiết lập và tôi luyện 3 tầng cấu trúc thần chú Prompt (Cơ bản, Cải tiến, Nâng cao) để ra lệnh cho AI tóm tắt văn bản và thiết lập đề kiểm tra ôn luyện lịch sử.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(3)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1OYFtvf-YBeVHaW_CVARs0WsYFi5LYHYK/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 3]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEST 4 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-4">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-4">4</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 04] DI TÍCH ĐỒNG MINH</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +180</span>
+                                <button onclick="toggleLevel(4, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-4">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 4: Phối hợp Đồng minh & Trị liệu rủi ro cộng tác</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Hóa giải toàn bộ rủi ro trong quản lý lưu trữ, sửa đổi dữ liệu chồng chéo và lệch múi giờ giao tiếp nhóm thông qua thiết lập luật lệ không gian số đồng bộ.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(4)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1-E0c6QoF9JSzoE6eWnA4Tgc53Rx5Sloo/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 4]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEST 5 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-5">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-5">5</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 05] XƯỞNG SÁNG TẠO SỐ</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +250</span>
+                                <button onclick="toggleLevel(5, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-5">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 5: Luyện ấn Infographic "AI & Ngoại ngữ"</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Kết tinh sức mạnh sáng tạo từ bộ ba trợ thủ số ChatGPT, DALL-E và Canva AI để rèn dũa nên bức Infographic trực quan, đúc kết từ trải nghiệm thực tế học tiếng Trung.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(5)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1-tmdScdjHFTvRTyDTg6Ztb7gxUxczB2f/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 5]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEST 6 -->
+                <div class="relative pl-8 md:pl-12 group">
+                    <div class="absolute -left-[19px] top-0 w-8 h-8 bg-army-950 border-2 border-army-600 group-hover:border-amber-500 rounded-full flex items-center justify-center transition-colors z-10" id="indicator-6">
+                        <span class="text-xs font-game text-army-300 group-hover:text-amber-500" id="num-6">6</span>
+                    </div>
+                    <div class="bg-[#070b06] border-4 border-[#3e5336] p-6 pixel-corners transition-colors space-y-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-game text-[9px] text-amber-500">[RUIN 06] ĐỀN THỜ LIÊM CHÍNH</span>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-army-950 text-army-300 font-mono text-[9px] border border-army-800">EXP +220</span>
+                                <button onclick="toggleLevel(6, event)" class="px-3 py-1 bg-army-900 hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 font-mono text-[9px] pixel-corners transition-all" id="btn-6">Xác nhận vượt ải</button>
+                            </div>
+                        </div>
+                        <h3 class="text-sm md:text-base font-game text-slate-100 text-shadow-heavy">Thử thách 6: Hiệp ước Đạo đức AI & Học thuật có trách nhiệm</h3>
+                        <p class="text-xs text-slate-200 font-mono">
+                            Khảo cứu văn kiện đạo đức AI phổ quát, thiết lập 7 nguyên tắc danh dự của cá nhân và hoàn thiện đồ án thuyết trình tiếng nước ngoài có trách nhiệm.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="openQuestDetails(6)" class="px-3 py-2 bg-army-950 border-2 border-army-700 hover:border-amber-500 hover:text-amber-500 text-[9px] font-game pixel-corners flex items-center gap-2 transition-all">
+                                <span>MỞ NHẬT KÝ CHI TIẾT [Terminal]</span>
+                            </button>
+                            <a href="https://docs.google.com/document/d/1YngjiNMFfVgTyd2AQXkj6E3Fs5cv5THB/edit?usp=drive_link&ouid=101735809748558350213&rtpof=true&sd=true" target="_blank" class="px-3 py-2 bg-[#1b2614] hover:bg-amber-500 hover:text-army-950 border-2 border-amber-500 text-amber-500 transition-all font-mono text-[10px] pixel-corners flex items-center gap-2">
+                                <span>[Tải Mật Quyển Bài 6]</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 5: FINAL REFLECTION & REWARD CHEST (Tổng kết, thuận lợi, khó khăn, bài học + rương báu) -->
+        <section id="achievements" class="scroll-mt-24 space-y-12 text-center">
+            <div class="space-y-4 bg-[#070b06] border-4 border-[#3e5336] p-6 md:p-8 pixel-corners shadow-2xl">
+                <span class="font-mono text-xs text-amber-500 tracking-widest block">// Campaign Complete Vault</span>
+                <h2 class="font-game text-sm md:text-base text-slate-100 text-shadow-heavy">IV. Tổng Kết Chiến Dịch & Thành Tựu</h2>
+                <p class="text-xs md:text-sm text-slate-200 max-w-xl mx-auto leading-relaxed font-mono">
+                    Hoàn thành 6/6 cấp độ bên trên để tháo gỡ bẫy bảo vệ chiếc rương chứa bản báo cáo tổng kết chi tiết về hành trình phát triển bản thân của tôi.
+                </p>
+            </div>
+
+            <!-- Animated Chest Container -->
+            <div class="flex flex-col items-center justify-center p-8 bg-[#070b06] border-4 border-[#3e5336] pixel-corners max-w-md mx-auto space-y-6 shadow-2xl">
+                <div class="relative w-36 h-36 flex items-center justify-center cursor-pointer" onclick="attemptOpenChest()">
+                    <div class="absolute inset-0 bg-amber-500/15 blur-xl rounded-full scale-0 transition-transform duration-500" id="chest-glow"></div>
+                    
+                    <!-- Locked Chest -->
+                    <div class="w-24 h-24 text-army-500 transition-all duration-300 transform" id="chest-locked">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8m16 0V8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4m16 0h-4M4 12h4m0 0V8m12 4v-4m-12 4h8" />
+                            <rect x="10" y="14" width="4" height="5" rx="1" fill="currentColor" class="text-amber-500 animate-pulse" />
+                        </svg>
+                    </div>
+
+                    <!-- Unlocked Chest -->
+                    <div class="w-24 h-24 text-amber-400 hidden transition-all duration-300 transform scale-105" id="chest-open">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v4m0 0L9 4m3 2l3-2M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9M4 11h16m-16 0V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3" />
+                            <circle cx="12" cy="15" r="2" fill="currentColor" class="text-amber-500" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="space-y-2 font-mono">
+                    <div class="font-game text-[9px] text-amber-500" id="chest-status">RƯƠNG ĐANG KHÓA</div>
+                    <div class="text-xs text-slate-200" id="chest-instruction">Đánh dấu hoàn thành toàn bộ 6 Level bên trên để mở khóa</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- DYNAMIC QUEST LOG PANEL (CRT Terminal / Modal) -->
+    <div class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-army-950/95 backdrop-blur-sm" id="quest-modal">
+        <div class="bg-[#070b06] border-4 border-army-500 p-6 md:p-8 pixel-corners max-w-4xl w-full relative space-y-6 shadow-2xl animate-[scaleUp_0.2s_ease-out]" id="quest-panel">
+            <!-- Retro elements -->
+            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-army-400"></div>
+            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-army-400"></div>
+            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-army-400"></div>
+            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-army-400"></div>
+
+            <!-- Console Header -->
+            <div class="flex justify-between items-center border-b-2 border-army-800 pb-4">
+                <div>
+                    <span class="font-mono text-xs text-amber-500 uppercase tracking-widest block" id="modal-level-title">[LEVEL X] TUẦN X</span>
+                    <h2 class="font-game text-xs md:text-sm text-slate-100" id="modal-quest-title">Tên nhiệm vụ hành trình</h2>
+                </div>
+                <button onclick="closeQuestModal()" class="text-amber-400 hover:text-amber-500 font-game text-[10px]">[THOÁT CONSOLE]</button>
+            </div>
+
+            <!-- Console Terminal Tabs -->
+            <div class="flex border-b border-army-800 font-mono text-xs overflow-x-auto">
+                <button class="px-4 py-2 border-b-2 border-amber-500 text-amber-500 font-bold" id="tab-btn-1" onclick="switchTab(1)">[01] Nhật Ký Thực Hành</button>
+                <button class="px-4 py-2 border-b-2 border-transparent text-army-400 hover:text-army-200" id="tab-btn-2" onclick="switchTab(2)">[02] Phân Tích & Đối Sách</button>
+                <button class="px-4 py-2 border-b-2 border-transparent text-army-400 hover:text-army-200" id="tab-btn-3" onclick="switchTab(3)">[03] Cổ Vật Thu Hoạch</button>
+            </div>
+
+            <!-- Interactive Tab Contents -->
+            <div class="font-mono text-xs md:text-sm leading-relaxed overflow-y-auto max-h-[60vh] pr-2 space-y-4" id="modal-tab-content">
+                <!-- Content will be dynamically populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- REWARD MODAL (Báo cáo tổng kết hoàn chỉnh) -->
+    <div class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 bg-army-950/98 backdrop-blur-md" id="reward-modal">
+        <div class="bg-[#070b06] border-4 border-amber-500 p-6 md:p-8 pixel-corners max-w-4xl w-full relative space-y-6 shadow-2xl animate-[scaleUp_0.3s_ease-out]">
+            <!-- Corner Reticles -->
+            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-amber-500"></div>
+            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-amber-500"></div>
+            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-amber-500"></div>
+            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-amber-500"></div>
+
+            <div class="flex justify-between items-center border-b border-army-700 pb-4">
+                <div>
+                    <span class="font-mono text-xs text-amber-500 uppercase tracking-widest block">// Mission Completed</span>
+                    <h2 class="font-game text-xs md:text-sm text-slate-100">KHO BÁU TỔNG KẾT CHIẾN DỊCH HỌC THUẬT</h2>
+                </div>
+                <button onclick="closeRewardModal()" class="text-amber-400 hover:text-amber-500 font-game text-[10px]">[QUAY LẠI BẢN ĐỒ]</button>
+            </div>
+
+            <!-- Structured Conclusions -->
+            <div class="space-y-6 text-xs md:text-sm leading-relaxed text-slate-100 overflow-y-auto max-h-[60vh] pr-2 font-mono">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Thuận lợi -->
+                    <div class="bg-army-950 border-2 border-army-800 p-4 rounded space-y-2">
+                        <h4 class="font-game text-[9px] text-amber-500 flex items-center gap-1">
+                            <span>▲ THUẬN LỢI TÍCH LUỸ</span>
+                        </h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-200">
+                            <li>Nền tảng lý thuyết môn học xuất sắc, lộ trình thực hành thực tế rõ ràng.</li>
+                            <li>Các công cụ AI (ChatGPT, DALL-E, Canva AI) có tính sẵn sàng cao, phản hồi nhanh chóng.</li>
+                            <li>Học liệu, tài liệu tham khảo phong phú và tính tương tác của đội nhóm tích cực.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Khó khăn -->
+                    <div class="bg-army-950 border-2 border-army-800 p-4 rounded space-y-2">
+                        <h4 class="font-game text-[9px] text-amber-500 flex items-center gap-1">
+                            <span>▼ KHÓ KHĂN ĐỐI MẶT</span>
+                        </h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-200">
+                            <li>Xác định ranh giới giữa việc ứng dụng AI trợ giúp và việc phụ thuộc hoàn toàn.</li>
+                            <li>Lọc nhiễu thông tin khi thu thập và thẩm định 10 nguồn học liệu.</li>
+                            <li>Quản lý xung đột dữ liệu đồng thời trong Google Docs khi làm việc nhóm lớn.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Bài học kinh nghiệm -->
+                <div class="bg-army-950 border-2 border-army-800 p-4 rounded space-y-2">
+                    <h4 class="font-game text-[9px] text-amber-500">◆ BÀI HỌC KINH NGHIỆM XƯƠNG MÁU</h4>
+                    <p class="text-slate-200 leading-relaxed">
+                        Mọi công nghệ hiện đại chỉ phát huy giá trị tối đa khi nằm trong sự kiểm soát của một tư duy độc lập và một trái tim liêm chính. Dù là 12 bước thao tác Windows, hệ tư liệu đánh giá CARS hay các bộ prompt phức tạp, đích đến cuối cùng vẫn luôn là việc rèn luyện thói quen tư duy khoa học, ngăn nắp và tinh thần chịu trách nhiệm trước mọi sản phẩm do bản thân kiến tạo.
+                    </p>
+                </div>
+
+                <!-- 3 Tiêu chí thành tựu cốt lõi vừa được bổ sung theo yêu cầu -->
+                <div class="bg-amber-500/10 p-4 border border-amber-500/30 text-amber-500 text-xs rounded space-y-2">
+                    <span class="font-game text-[9px] block">🏆 CÁC THÀNH TỰU ĐẠT ĐƯỢC:</span>
+                    <ul class="list-decimal list-inside space-y-1 font-mono">
+                        <li>Khai thác và sử dụng công nghệ số hiệu quả.</li>
+                        <li>Ứng dụng công nghệ số trong giao tiếp, hợp tác, sáng tạo nội dung số.</li>
+                        <li>An toàn và liêm chính học thuật.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD Footer -->
+    <footer class="bg-[#070b06] border-t-4 border-[#3e5336] py-8 relative z-10 mt-20 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs text-army-400">
+            <div>
+                <span>© 2026 Lê Phương Linh. ULIS - VNU.</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <span>Nhập môn Công nghệ số và Ứng dụng AI</span>
+                <span class="text-amber-500">Status: Hero Level Unlocked</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript For Game Logic & Dynamic Quest Log Loading -->
+    <script>
+        // Track completed states of 6 levels
+        const levelStates = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false };
+        let activeLevel = 1;
+        let activeTab = 1;
+
+        // RAW QUEST DATA - UNFILTERED & DETAILED FROM PDF
+        const QUEST_DATA = {
+            1: {
+                level: "LEVEL 1",
+                week: "TUẦN 1",
+                title: "Làm chủ tệp tin & thư mục trong Windows",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// NHẬT KÝ 12 BƯỚC THAO TÁC THƯ MỤC & TỆP TIN</h4>
+                        <div class="space-y-3 bg-army-950 p-4 border border-army-800 rounded-lg max-h-[45vh] overflow-y-auto text-slate-100 font-mono text-xs">
+                            <div><span class="text-amber-400 font-bold">Bước 1: Mở File Explorer</span><br>Sử dụng tổ hợp phím nóng <code class="bg-[#1b2614] px-1 text-amber-400">Windows + E</code> hoặc nhấp vào biểu tượng thư mục màu vàng trên thanh tác vụ của Windows.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 2: Truy cập ổ đĩa/thư mục</span><br>Vào khu vực <code class="bg-[#1b2614] px-1 text-amber-400">This PC</code> bên trái, click đúp chuột vào ổ đĩa phụ không chứa hệ điều hành như ổ <code class="bg-[#1b2614] px-1 text-amber-400">D:</code> hoặc <code class="bg-[#1b2614] px-1 text-amber-400">E:</code> (Nếu chỉ có ổ C thì truy cập thư mục Documents).</div>
+                            <div><span class="text-amber-400 font-bold">Bước 3: Tạo thư mục mới</span><br>Click chuột phải vào khoảng trống, chọn <code class="bg-[#1b2614] px-1 text-amber-400">New -> Folder</code> và khởi tạo thư mục chuyên dụng mang tên: <code class="bg-[#1b2614] px-1 text-amber-400">ThucHanh_Lephuonglinh</code> rồi nhấn Enter.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 4: Vào thư mục vừa tạo</span><br>Click đúp chuột trái vào thư mục <code class="bg-[#1b2614] px-1 text-amber-400">ThucHanh_Lephuonglinh</code> vừa khởi tạo để đi sâu vào bên trong thư mục rỗng.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 5: Tạo tệp tin văn bản</span><br>Click chuột phải vào khoảng trống, chọn <code class="bg-[#1b2614] px-1 text-amber-400">New -> Text Document</code>, đặt tên tệp văn bản mới là <code class="bg-[#1b2614] px-1 text-amber-400">GhiChu.txt</code>.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 6: Đổi tên tệp tin</span><br>Click chuột phải vào tệp <code class="bg-[#1b2614] px-1 text-amber-400">GhiChu.txt</code>, chọn biểu tượng hoặc nút <code class="bg-[#1b2614] px-1 text-amber-400">Rename</code>, đổi tên tệp thành <code class="bg-[#1b2614] px-1 text-amber-400">GhiChuQuanTrong.txt</code> và nhấn Enter.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 7: Tạo thư mục con</span><br>Trong thư mục cha hiện tại, click chuột phải chọn <code class="bg-[#1b2614] px-1 text-amber-400">New -> Folder</code>, đặt tên thư mục con mới là <code class="bg-[#1b2614] px-1 text-amber-400">TaiLieu</code>.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 8: Sao chép tệp tin (Copy & Paste)</span><br>Nhấp chuột phải vào tệp <code class="bg-[#1b2614] px-1 text-amber-400">GhiChuQuanTrong.txt</code> chọn <code class="bg-[#1b2614] px-1 text-amber-400">Copy (Ctrl + C)</code>. Sau đó vào thư mục <code class="bg-[#1b2614] px-1 text-amber-400">TaiLieu</code> nhấp chuột phải chọn <code class="bg-[#1b2614] px-1 text-amber-400">Paste (Ctrl + V)</code> để sao chép bản copy của tệp.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 9: Di chuyển tệp tin (Cut & Paste)</span><br>Chọn tệp tin gốc cần di chuyển (ví dụ tệp <code class="bg-[#1b2614] px-1 text-amber-400">DiChuyen.txt</code> ở thư mục cha), chọn lệnh <code class="bg-[#1b2614] px-1 text-amber-400">Cut (Ctrl + X)</code> và dán vào trong thư mục <code class="bg-[#1b2614] px-1 text-amber-400">TaiLieu</code> bằng <code class="bg-[#1b2614] px-1 text-amber-400">Paste (Ctrl + V)</code>.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 10: Xóa tệp tin</span><br>Trong thư mục <code class="bg-[#1b2614] px-1 text-amber-400">TaiLieu</code>, nhấp chuột phải vào tệp <code class="bg-[#1b2614] px-1 text-amber-400">GhiChuQuanTrong.txt</code> -> chọn biểu tượng <code class="bg-[#1b2614] px-1 text-amber-400">Delete</code>. Tệp tin này sẽ lập tức được di chuyển vào thùng rác hệ thống (Recycle Bin).</div>
+                            <div><span class="text-amber-400 font-bold">Bước 11: Xóa vĩnh viễn</span><br>Chọn tệp <code class="bg-[#1b2614] px-1 text-amber-400">DiChuyen.txt</code> trong thư mục, nhấn giữ tổ hợp phím <code class="bg-[#1b2614] px-1 text-amber-400">Shift + Delete</code>. Một hộp thoại cảnh báo sẽ xuất hiện, bấm đồng ý để xoá vĩnh viễn tệp ra khỏi máy mà không lưu tại Recycle Bin.</div>
+                            <div><span class="text-amber-400 font-bold">Bước 12: Khôi phục từ Thùng rác</span><br>Mở biểu tượng <code class="bg-[#1b2614] px-1 text-amber-400">Recycle Bin</code> từ màn hình Desktop, tìm tệp <code class="bg-[#1b2614] px-1 text-amber-400">GhiChuQuanTrong.txt</code> vừa xóa ở Bước 10, click chuột phải vào nó và chọn <code class="bg-[#1b2614] px-1 text-amber-400">Restore</code> để phục hồi tệp về thư mục ban đầu.</div>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// THỨC THÁCH VÀ ĐỐI SÁCH CHIẾN THUẬT</h4>
+                        <div class="space-y-3 text-slate-100 font-mono text-xs">
+                            <p><span class="text-amber-400 font-bold">Thách thức:</span> Hệ thống lưu trữ dễ trở nên lộn xộn nếu đặt tên không dấu thiếu quy chuẩn khoa học, hoặc lưu trữ chồng chéo không phân rõ chức năng các thư mục con.</p>
+                            <p><span class="text-amber-400 font-bold">Giải pháp đối phó:</span> Áp dụng quy chuẩn đặt tên đồng bộ không dấu (Ví dụ: ThucHanh_Lephuonglinh), kết hợp các thư mục phân nhánh rõ rệt để phân loại tệp tin theo đúng chức năng (tệp nháp, văn bản quan trọng, tệp tạm thời).</p>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// SẢN PHẨM HOÀN THÀNH</h4>
+                        <div class="space-y-2 text-slate-100 font-mono text-xs">
+                            <p>Không gian lưu trữ số cá nhân chuẩn hoá đã được rèn luyện thành thục tại đường dẫn <code class="bg-[#1b2614] px-1 text-amber-400">D:\\ThucHanh_Lephuonglinh\\TaiLieu</code>.</p>
+                            <p><span class="text-amber-400 font-bold">Ý nghĩa:</span> Nắm vững kỹ năng thao tác cơ sở dữ liệu trên máy tính cá nhân là điều kiện kiên quyết để tiến hành nghiên cứu số thông suốt, đảm bảo không thất lạc hay xoá nhầm dữ liệu học thuật.</p>
+                        </div>
+                    `
+                }
+            },
+            2: {
+                level: "LEVEL 2",
+                week: "TUẦN 2",
+                title: "Thẩm định học thuật: Tín ngưỡng Thái Mai Châu",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// CHIẾN LƯỢC TÌM KIẾM 4 NGUỒN PHÂN LOẠI</h4>
+                        <p class="mb-4 text-slate-100 font-mono text-xs">
+                            Thu thập dữ liệu thông qua 4 nguồn chuyên nghiệp: Cơ sở dữ liệu học thuật (Thư viện ĐHQGHN), Tạp chí khoa học chuyên ngành, Sách chuyên khảo (NXB Văn hoá Dân tộc) và Nguồn mở trên Internet từ các trang báo điện tử của Nhà nước.
+                        </p>
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// BẢNG XẾP HẠNG 10 TƯ LIỆU THAM KHẢO CHUẨN XÁC</h4>
+                        <div class="overflow-x-auto max-h-[35vh]">
+                            <table class="w-full text-left text-xs border-collapse border border-army-800 bg-army-950 font-mono">
+                                <thead>
+                                    <tr class="bg-army-900 text-amber-500">
+                                        <th class="border border-army-800 p-2">STT</th>
+                                        <th class="border border-army-800 p-2">Tên tư liệu / Tác giả / Năm</th>
+                                        <th class="border border-army-800 p-2">Loại nguồn</th>
+                                        <th class="border border-army-800 p-2">Đánh giá độ tin cậy dựa trên CARS</th>
+                                        <th class="border border-army-800 p-2">Xếp hạng</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-slate-100">
+                                    <tr>
+                                        <td class="border border-army-800 p-2">1</td>
+                                        <td class="border border-army-800 p-2">Một số vấn đề về dân tộc học Việt Nam / Phan Hữu Dật (2018)</td>
+                                        <td class="border border-army-800 p-2">Sách chuyên khảo</td>
+                                        <td class="border border-army-800 p-2">Tác giả là cây đại thụ của ngành Dân tộc học VN. NXB ĐHQG uy tín. Giá trị lý thuyết tối ưu.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">2</td>
+                                        <td class="border border-army-800 p-2">Trang phục các tộc người thiểu số... / Đỗ Thị Hòa (2012)</td>
+                                        <td class="border border-army-800 p-2">Sách chuyên khảo</td>
+                                        <td class="border border-army-800 p-2">NXB Văn hóa dân tộc. Đi sâu vào văn hóa vật thể và các yếu tố hoa văn tâm linh, tín ngưỡng Thái.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">3</td>
+                                        <td class="border border-army-800 p-2">Văn hóa và tín ngưỡng / Võ Văn Thành (2024)</td>
+                                        <td class="border border-army-800 p-2">Sách chuyên khảo</td>
+                                        <td class="border border-army-800 p-2">NXB Tri thức. Cực kỳ cập nhật mới (2024). Cung cấp góc nhìn lý thuyết hiện đại về mối quan hệ tín ngưỡng.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">4</td>
+                                        <td class="border border-army-800 p-2">Bảo tồn và phát huy giá trị văn hóa truyền thống người Thái... / Đỗ Thanh Hiền (2025)</td>
+                                        <td class="border border-army-800 p-2">Tạp chí KH</td>
+                                        <td class="border border-army-800 p-2">Tạp chí Việt Nam hội nhập. Rất mới (2025). Có tính chất phản biện và so sánh khoa học tuyệt đối.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">5</td>
+                                        <td class="border border-army-800 p-2">Vấn đề giữ gìn và phát huy bản sắc văn hóa dân tộc Mường... / Đào Thị Dương (2016)</td>
+                                        <td class="border border-army-800 p-2">Luận văn Thạc sĩ</td>
+                                        <td class="border border-army-800 p-2">Viện Hàn lâm KHXH Việt Nam. Rất có giá trị đối sánh liên văn hóa giữa người Mường và người Thái Hòa Bình.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">6</td>
+                                        <td class="border border-army-800 p-2">Phong Tục Và Tín Ngưỡng Tôn Giáo Của Người Nùng... / Lê Thị Thanh Vân (2009)</td>
+                                        <td class="border border-army-800 p-2">Luận văn Thạc sĩ</td>
+                                        <td class="border border-army-800 p-2">Đại học Thái Nguyên. Giúp so sánh tín ngưỡng giữa các nhóm ngữ hệ Tày - Thái. Hạn chế: Năm 2009 khá cũ.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">B</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">7</td>
+                                        <td class="border border-army-800 p-2">Lễ đón nhận Di sản... Keng Loóng và Lễ hội Xên Mường... / Hồng Vân (2024)</td>
+                                        <td class="border border-army-800 p-2">Mở trực tuyến</td>
+                                        <td class="border border-army-800 p-2">TTXVN - Báo Tin tức. Báo chính thống. Thông tin thực tế về Keng Loóng và Xên Mường cực kỳ chính xác.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">B</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">8</td>
+                                        <td class="border border-army-800 p-2">Giữ mạch nguồn văn hóa Thái Mai Châu / Bùi Minh (2025)</td>
+                                        <td class="border border-army-800 p-2">Mở trực tuyến</td>
+                                        <td class="border border-army-800 p-2">Báo Phú Thọ. Báo Đảng địa phương. Phản ánh chân thực sinh động, duy trì phong tục thực tế tính đến 2025.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">B</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">9</td>
+                                        <td class="border border-army-800 p-2">Người Thái dựng nhà sàn / Trịnh Thông Thiện (2022)</td>
+                                        <td class="border border-army-800 p-2">Mở trực tuyến</td>
+                                        <td class="border border-army-800 p-2">Báo Công dân và Khuyến học. Mô tả kỹ lưỡng tập tục dựng nhà và các không gian cột thiêng liêng tâm linh.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">B</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2">10</td>
+                                        <td class="border border-army-800 p-2">Nguồn gốc Mã Lai của dân tộc Việt Nam / Nguyễn Bình Lộc (1971)</td>
+                                        <td class="border border-army-800 p-2">Sách lịch sử</td>
+                                        <td class="border border-army-800 p-2">NXB Bạch Lộc. Sách xuất bản quá lâu (1971). Một số giả thuyết khảo cổ cổ xưa có thể thay đổi.</td>
+                                        <td class="border border-army-800 p-2 text-amber-500 font-bold">C / B</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// PHƯƠNG PHÁP BIÊN TẬP VÀ ĐỐI SÁCH</h4>
+                        <div class="space-y-3 text-slate-100 font-mono text-xs">
+                            <p><span class="text-amber-400 font-bold">Tư duy đối sánh:</span> Tìm kiếm tư liệu về tộc người láng giềng (Mường Hòa Bình, Nùng Lạng Sơn) nhằm so sánh liên văn hóa, chỉ ra những điểm giao thoa tín ngưỡng tâm linh đặc sắc của cư dân Thái Mai Châu.</p>
+                            <p><span class="text-amber-400 font-bold">Đánh giá sâu:</span> Không sử dụng các báo cáo kém chất lượng, phân tích sự hạn chế về thời gian xuất bản (Ví dụ tài liệu năm 1971) để lọc bỏ các luận điểm lạc hậu.</p>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// KẾT QUẢ ĐẠT ĐƯỢC</h4>
+                        <div class="space-y-2 text-slate-100 font-mono text-xs">
+                            <p>Thiết lập danh mục tài liệu chuẩn hóa 100% sang định dạng <span class="text-amber-400 font-bold">Harvard quốc tế</span> khắt khe.</p>
+                            <p><span class="text-amber-400 font-bold">Ý nghĩa:</span> Tạo nền tảng học thuật chuẩn mực, giúp các nghiên cứu văn hóa truyền thống sau này của tôi luôn có dẫn chứng chân thực và đạt độ tin cậy tuyệt đối.</p>
+                        </div>
+                    `
+                }
+            },
+            3: {
+                level: "LEVEL 3",
+                week: "TUẦN 3",
+                title: "Prompt Engineering: Nghệ thuật tương tác với AI",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// HỒ SƠ 3 TÁC VỤ THỬ NGHIỆM CHI TIẾT</h4>
+                        <div class="space-y-4 max-h-[45vh] overflow-y-auto text-xs text-slate-100 font-mono">
+                            <!-- TÁC VỤ 1 -->
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold block mb-1">Tác vụ 1: Tóm tắt bài viết học thuật địa chất/môi trường</span>
+                                <ul class="space-y-1.5 list-none">
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cơ bản:</span> "Hãy tóm tắt bài viết này."<br><span class="text-amber-400">-> Kết quả:</span> Ngắn, chung chung, thiếu các ý cốt lõi, chưa có cấu trúc rõ ràng.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cải tiến:</span> "Hãy tóm tắt bài viết sau trong khoảng 150 từ. Nêu rõ: Chủ đề chính, các luận điểm quan trọng, kết luận của tác giả. Sử dụng ngôn ngữ dễ hiểu cho sinh viên đại học."<br><span class="text-amber-400">-> Kết quả:</span> Cải thiện rõ rệt, dễ đọc, tóm lược đủ ý chính của dự án phủ xanh của Trung Quốc.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt nâng cao (Học thuật):</span> "Bạn là một giảng viên đại học chuyên hướng dẫn kỹ năng đọc học thuật. Hãy đọc tài liệu và thực hiện các bước sau: 1. Xác định chủ đề chính của bài viết, 2. Liệt kê các luận điểm quan trọng, 3. Tóm tắt nội dung trong khoảng 150-200 từ, 4. Viết lại bằng ngôn ngữ đơn giản để sinh viên năm nhất dễ hiểu. Cuối cùng, trình bày kết quả theo dạng gạch đầu dòng."<br><span class="text-amber-400">-> Kết quả:</span> Đầu ra xuất sắc tuyệt đối, bố cục chia rõ ràng thành chủ đề, luận điểm, tóm tắt và cực kỳ sư phạm.</li>
+                                </ul>
+                            </div>
+
+                            <!-- TÁC VỤ 2 -->
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold block mb-1">Tác vụ 2: Giải thích khái niệm phức tạp (Trí tuệ nhân tạo)</span>
+                                <ul class="space-y-1.5 list-none">
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cơ bản:</span> "Giải thích trí tuệ nhân tạo là gì."<br><span class="text-amber-400">-> Kết quả:</span> Giải thích đúng nhưng ngắn, khô khan, thiếu ví dụ minh họa sinh động.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cải tiến:</span> "Hãy giải thích khái niệm 'trí tuệ nhân tạo' cho học sinh trung học. Bao gồm: Định nghĩa, ví dụ thực tế, ứng dụng trong đời sống. Sử dụng ngôn ngữ đơn giản, dễ hiểu."<br><span class="text-amber-400">-> Kết quả:</span> Gần gũi hơn, có ví dụ cụ thể về chatbot, xe tự lái, công nghệ nhận diện khuôn mặt.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt nâng cao:</span> "Bạn là giáo viên công nghệ thông tin. Hãy giải thích khái niệm 'trí tuệ nhân tạo (AI)' theo từng bước: 1. Đưa ra định nghĩa đơn giản, 2. So sánh AI với con người, 3. Cho ít nhất 3 ví dụ trong thực tế, 4. Phân tích ưu điểm và hạn chế của AI. Sau đó: Tóm tắt nội dung bằng 5 câu ngắn. Đặt 2 câu hỏi kiểm tra hiểu bài."<br><span class="text-amber-400">-> Kết quả:</span> Cung cấp đầy đủ định nghĩa, bảng so sánh trực quan ưu/nhược điểm và bộ câu hỏi củng cố hoàn hảo cho giáo trình học.</li>
+                                </ul>
+                            </div>
+
+                            <!-- TÁC VỤ 3 -->
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold block mb-1">Tác vụ 3: Tạo bộ câu hỏi ôn tập Lịch sử VN 1945-1975</span>
+                                <ul class="space-y-1.5 list-none">
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cơ bản:</span> "Hãy tạo câu hỏi ôn tập về lịch sử Việt Nam."<br><span class="text-amber-400">-> Kết quả:</span> Câu hỏi tạo ngẫu nhiên, chung chung và không phân chia cấp độ.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt cải tiến:</span> "Hãy tạo 10 câu hỏi ôn tập về lịch sử Việt Nam giai đoạn 1945–1975. Bao gồm: 5 câu trắc nghiệm, 5 câu tự luận ngắn. Kèm đáp án cho từng câu."<br><span class="text-amber-400">-> Kết quả:</span> Khá tốt, hữu ích cho tự ôn thi nhờ có đáp án đi kèm trực tiếp.</li>
+                                    <li>- <span class="text-amber-500 font-bold">Prompt nâng cao:</span> "Bạn là giáo viên môn Lịch sử THPT. Hãy tạo bộ câu hỏi ôn tập về lịch sử Việt Nam giai đoạn 1945–1975 theo cấu trúc sau: 5 câu trắc nghiệm dễ, 3 câu tự luận trung bình, 2 câu vận dụng nâng cao. Yêu cầu: Có đáp án chi tiết, giải thích ngắn gọn vì sao đáp án đúng, sắp xếp từ dễ đến khó."<br><span class="text-amber-400">-> Kết quả:</span> Tạo ra đề kiểm tra lý tưởng có độ phân hóa học sinh rõ rệt, đáp án giải thích vì sao chọn A/B/C cực kỳ chặt chẽ.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// KỸ THUẬT PROMPT ENGINEERING NÂNG CAO</h4>
+                        <div class="space-y-3 text-slate-100 font-mono text-xs">
+                            <p>1. <span class="text-amber-400 font-bold">Role Prompting (Gán vai trò):</span> Giúp AI xác định chuẩn xác tông giọng, hệ quy chiếu chuyên môn (Giảng viên, Giáo viên phổ thông).</p>
+                            <p>2. <span class="text-amber-400 font-bold">Chain-of-Thought (Tư duy từng bước):</span> Hướng dẫn AI xử lý logic một chuỗi yêu cầu phức tạp mà không bị bỏ sót thông tin.</p>
+                            <p>3. <span class="text-amber-400 font-bold">Few-Shot Examples (Đưa ví dụ mẫu):</span> Định hình phong cách định dạng kết quả đầu ra theo đúng mong muốn cá nhân.</p>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// THÀNH QUẢ & BÀI HỌC CỐT LÕI</h4>
+                        <div class="space-y-2 text-slate-100 font-mono text-xs">
+                            <p>Lập bảng so sánh 3 cấp độ prompt trên các khía cạnh: Độ chi tiết, Độ chính xác, Cấu trúc dữ liệu và Mức độ hữu ích thực tế.</p>
+                            <p><span class="text-amber-400 font-bold">Bài học:</span> AI là tấm gương phản chiếu trực tiếp trình độ đặt câu hỏi của bạn. Để nhận được tri thức tinh hoa, người hỏi phải biết kiến tạo một câu lệnh thông minh và chặt chẽ.</p>
+                        </div>
+                    `
+                }
+            },
+            4: {
+                level: "LEVEL 4",
+                week: "TUẦN 4",
+                title: "Tối ưu hóa không gian cộng tác trực tuyến nhóm",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// BA NHÓM CÔNG CỤ CỘNG TÁC SỐ CHỦ CHỐT</h4>
+                        <div class="space-y-3 max-h-[45vh] overflow-y-auto text-xs text-slate-100 font-mono">
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">1. Soạn thảo tài liệu cộng tác đồng thời (Google Docs)</span>
+                                <p class="text-army-300 mt-1">
+                                    Thành viên nhóm cùng truy cập chỉnh sửa nội dung, xây dựng báo cáo tiểu luận hoặc biên bản cuộc họp đồng thời theo thời gian thực.
+                                </p>
+                            </div>
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">2. Lưu trữ và chia sẻ tệp đám mây (Google Drive)</span>
+                                <p class="text-army-300 mt-1">
+                                    Lưu trữ tập trung mọi dữ liệu tham khảo, hình ảnh, báo cáo nháp và báo cáo hoàn chỉnh của dự án học tập nhóm.
+                                </p>
+                            </div>
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">3. Kênh giao tiếp và truyền thông nhóm (Zalo / MS Teams)</span>
+                                <p class="text-army-300 mt-1">
+                                    Trao đổi thông tin nhanh, cập nhật lịch trình học tập lệch nhau và họp trực tuyến định kỳ đồng bộ tiến độ.
+                                </p>
+                            </div>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// MA TRẬN THÁCH THỨC VÀ ĐỐI SÁCH</h4>
+                        <div class="space-y-3 max-h-[45vh] overflow-y-auto text-xs text-slate-100 font-mono">
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">Đối sách với Google Docs:</span>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Thách thức:</span> Sửa đè, chỉnh sửa chồng chéo, vô tình xoá mất thông tin của nhau. Sự không đồng nhất về phong cách trình bày (font chữ, cỡ chữ, bố cục).</p>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Giải pháp:</span> Phân chia cụ thể khu vực phụ trách của từng thành viên từ đầu. Ưu tiên sử dụng tính năng <code class="bg-[#1b2614] px-1 text-amber-400">Comment</code> hoặc bật chế độ <code class="bg-[#1b2614] px-1 text-amber-400">Suggesting</code> thay vì chỉnh trực tiếp. Thống nhất một bộ quy tắc căn lề và định dạng văn bản.</p>
+                            </div>
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">Đối sách với Google Drive:</span>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Thách thức:</span> Số lượng tệp tải lên tăng quá nhanh dẫn đến khó quản lý, tên file không đồng bộ, lưu trữ nhiều vị trí khác nhau gây thất lạc dữ liệu.</p>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Giải pháp:</span> Thiết lập hệ thống thư mục phân loại khoa học (Tài liệu gốc, Hình ảnh thiết kế, Bản nháp, Bản Final). Thống nhất quy tắc đặt tên tệp và thiết lập phân quyền truy cập hợp lý cho từng thành viên.</p>
+                            </div>
+                            <div class="bg-army-950 p-3 border border-army-800 rounded">
+                                <span class="text-amber-400 font-bold">Đối sách với Zalo / MS Teams:</span>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Thách thức:</span> Khó tương tác thường xuyên do lịch học lệch nhau. Thông báo quan trọng dễ bị trôi giữa hàng loạt tin nhắn khác. Trao đổi bằng chữ đôi khi gây hiểu sai yêu cầu.</p>
+                                <p class="mt-1"><span class="text-amber-500 font-bold">Giải pháp:</span> Thống nhất một kênh trao đổi chính để tránh phân tán thông tin. Sử dụng tính năng <code class="bg-[#1b2614] px-1 text-amber-400">Ghim thông báo quan trọng</code>. Họp trực tuyến định kỳ và cử thư ký tổng hợp, gửi lại biên bản họp cho nhóm.</p>
+                            </div>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// THÀNH TỰU ĐỒNG ĐỘI</h4>
+                        <div class="space-y-2 text-slate-100 font-mono text-xs">
+                            <p>Xây dựng thành công quy trình cộng tác số chặt chẽ, tối ưu hóa thời gian hoàn thành báo cáo chung của nhóm.</p>
+                            <p><span class="text-amber-400 font-bold">Bài học:</span> Sự cộng tác trực tuyến hiệu quả không nằm ở sự tối tân của công cụ, mà nằm ở tính thống nhất về mặt nguyên tắc làm việc và ý thức kỷ luật của từng thành viên.</p>
+                        </div>
+                    `
+                }
+            },
+            5: {
+                level: "LEVEL 5",
+                week: "TUẦN 5",
+                title: "Sáng tạo nội dung với AI tạo sinh",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// QUY TRÌNH PHỐI HỢP BA AI SÁNG TẠO SẢN PHẨM</h4>
+                        <div class="space-y-3 text-xs text-slate-100 font-mono">
+                            <p><span class="text-amber-400 font-bold">1. Kiến tạo nội dung cốt lõi (ChatGPT):</span><br>Giao quyền cho ChatGPT lập đề cương và nội dung chi tiết: định nghĩa AI, lợi ích của AI trong học ngoại ngữ (Học từ vựng, Luyện nghe, Luyện nói, Luyện viết), đạo đức AI.</p>
+                            <p><span class="text-amber-400 font-bold">2. Thiết kế mỹ thuật minh họa (DALL-E):</span><br>Nhập câu lệnh tạo ảnh: <code class="bg-[#1b2614] px-1 text-amber-400">"Create a modern flat illustration of university students learning foreign languages with AI assistants, blue academic style, infographic design."</code> để thu được ảnh minh họa gốc chuẩn màu học thuật xanh mộng mơ.</p>
+                            <p><span class="text-amber-400 font-bold">3. Tự động hóa căn chỉnh bố cục (Canva AI):</span><br>Nhập prompt: <code class="bg-[#1b2614] px-1 text-amber-400">"Design an educational infographic about AI in language learning with blue academic theme."</code>, hệ thống Canva tự động đề xuất và sắp xếp bố cục tối giản tinh tế.</p>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// SỰ ĐÓNG GÓP THỦ CÔNG CỦA BẢN THÂN</h4>
+                        <div class="space-y-3 text-slate-100 font-mono text-xs">
+                            <p>Dù AI hỗ trợ nhiều công đoạn, bản thân tôi vẫn là người trực tiếp kiểm chứng và can thiệp thủ công:</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Lược bỏ các ý trùng lặp, chỉnh sửa câu từ tiếng Việt tự nhiên và sâu sắc hơn.</li>
+                                <li>Đặc biệt bổ sung các <span class="text-amber-400 font-bold">ví dụ thực tế sống động</span> dựa trên chính trải nghiệm tự học tiếng Trung cá nhân của bản thân.</li>
+                                <li>Thiết kế lại bố cục tổng thể, lựa chọn tông màu xanh mát mẻ mộng mơ và sắp xếp vị trí các biểu tượng hợp lý.</li>
+                            </ul>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// MA TRẬN SO SÁNH 3 CÔNG CỤ SÁNG TẠO AI</h4>
+                        <div class="overflow-x-auto max-h-[35vh]">
+                            <table class="w-full text-left text-xs border-collapse border border-army-800 bg-army-950 font-mono">
+                                <thead>
+                                    <tr class="bg-army-900 text-amber-500">
+                                        <th class="border border-army-800 p-2">Công cụ AI</th>
+                                        <th class="border border-army-800 p-2">Ưu điểm nổi bật</th>
+                                        <th class="border border-army-800 p-2">Hạn chế phát hiện</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-slate-100">
+                                    <tr>
+                                        <td class="border border-army-800 p-2 font-bold text-amber-400">ChatGPT</td>
+                                        <td class="border border-army-800 p-2">Ý tưởng cực kỳ phong phú, lập dàn ý siêu tốc và rõ ràng.</td>
+                                        <td class="border border-army-800 p-2">Đôi khi thông tin còn khá chung chung, chưa sát thực tiễn Việt Nam.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2 font-bold text-amber-400">DALL-E</td>
+                                        <td class="border border-army-800 p-2">Tạo ra những bức tranh đẹp đẽ, sáng tạo và rất hiện đại.</td>
+                                        <td class="border border-army-800 p-2">Một số chi tiết nhỏ vẽ bị méo, chưa đúng hoàn toàn theo ý muốn.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-army-800 p-2 font-bold text-amber-400">Canva AI</td>
+                                        <td class="border border-army-800 p-2">Thiết kế cực nhanh, cung cấp many template mẫu chuyên nghiệp.</td>
+                                        <td class="border border-army-800 p-2">Mẫu rập khuôn, cần tinh chỉnh thủ công để tạo dấu ấn cá nhân.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `
+                }
+            },
+            6: {
+                level: "LEVEL 6",
+                week: "TUẦN 6",
+                title: "Liêm chính học thuật - Sử dụng AI có trách nhiệm",
+                tabs: {
+                    1: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// ĐỐI SÁNH CHÍNH SÁCH SỬ DỤNG AI</h4>
+                        <p class="text-slate-100 mb-3 font-mono text-xs">
+                            Phân tích quy định của trường Đại học Kinh tế Thành phố Hồ Chí Minh (UEH) về việc kiểm soát đạo văn và sử dụng AI trong các sản phẩm học thuật.
+                        </p>
+                        <div class="bg-army-950 p-3 border border-army-800 rounded text-xs space-y-2 text-slate-100 font-mono">
+                            <p><span class="text-amber-400 font-bold">1. Sự phân biệt rõ ràng:</span> UEH phân biệt AI hỗ trợ (kiểm tra ngữ pháp, dịch thuật, chỉnh sửa văn bản) và AI tạo sinh (ChatGPT, Gemini, Claude...).</p>
+                            <p><span class="text-amber-400 font-bold">2. Trách nhiệm học thuật:</span> Người học phải chịu trách nhiệm hoàn toàn đối với toàn bộ nội dung bài làm, việc sử dụng AI phải được khai báo minh bạch, nghiêm cấm dùng AI gian lận thi cử và tạo dữ liệu giả.</p>
+                        </div>
+                    `,
+                    2: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// CHUẨN BỊ BÀI THUYẾT TRÌNH "AI TRONG GIÁO DỤC NGOẠI NGỮ"</h4>
+                        <div class="space-y-3 text-xs text-slate-100 font-mono max-h-[45vh] overflow-y-auto">
+                            <p class="font-bold text-amber-400">// 3 PROMPT ĐÃ SỬ DỤNG ĐỂ THIẾT KẾ DÀN Ý:</p>
+                            <div class="bg-army-950 p-2 border border-army-800 rounded space-y-1">
+                                <div>- <span class="text-amber-500">Prompt 1:</span> "Hãy cho tôi dàn ý bài thuyết trình 10 phút về ứng dụng của trí tuệ nhân tạo trong giáo dục ngoại ngữ."</div>
+                                <div>- <span class="text-amber-500">Prompt 2:</span> "Hãy trình bày 3 ứng dụng AI nổi bật trong học ngoại ngữ hiện nay và nêu ưu điểm của từng ứng dụng."</div>
+                                <div>- <span class="text-amber-500">Prompt 3:</span> "Hãy viết phần kết luận khoảng 100 từ về việc sử dụng AI trong học ngoại ngữ một cách có trách nhiệm."</div>
+                            </div>
+                            <p class="font-bold text-amber-400">// KẾT QUẢ ĐẦU RA CỦA AI VÀ SỰ ĐIỀU CHỈNH THỦ CÔNG CỦA BẢN THÂN:</p>
+                            <ul class="list-disc list-inside space-y-1.5 text-slate-100">
+                                <li>Kiểm chứng độ chính xác của các ứng dụng AI như ChatGPT, Grammarly, Duolingo Max thông qua các nguồn tài liệu chính thống.</li>
+                                <li>Loại bỏ những thông tin quá chung chung hoặc thiếu nguồn gốc kiểm chứng do AI tạo ra.</li>
+                                <li>Bổ sung ví dụ thực tế dựa trên kinh nghiệm tự học tiếng Trung cá nhân của tôi.</li>
+                                <li>Điều chỉnh ngôn ngữ thuyết trình phù hợp với đối tượng người nghe là sinh viên và trực tiếp thiết kế lại các slide theo ý tưởng sáng tạo cá nhân.</li>
+                            </ul>
+                        </div>
+                    `,
+                    3: `
+                        <h4 class="font-bold text-amber-500 mb-2 font-game text-[9px]">// 7 NGUYÊN TẮC VÀNG ĐẠO ĐỨC AI CÁ NHÂN</h4>
+                        <div class="space-y-1.5 text-xs text-slate-100 font-mono">
+                            <div><span class="text-amber-400 font-bold">1. Luôn xem AI là trợ lý hỗ trợ:</span> Tuyệt đối không để AI thay thế tư duy phản biện cá nhân của tôi.</div>
+                            <div><span class="text-amber-400 font-bold">2. Thẩm định mọi nguồn tin:</span> Kiểm chứng mọi dữ liệu AI cung cấp trước khi đưa vào bài học thuật.</div>
+                            <div><span class="text-amber-400 font-bold">3. Khai báo minh bạch sử dụng AI:</span> Đảm bảo trung thực học thuật đối với mọi bài nộp.</div>
+                            <div><span class="text-amber-400 font-bold">4. Không sao chép nguyên văn:</span> Tuyệt đối không copy-paste nguyên mẫu phản hồi của mô hình ngôn ngữ lớn.</div>
+                            <div><span class="text-amber-400 font-bold">5. Tôn trọng sở hữu trí tuệ:</span> Trích dẫn nguồn tài liệu gốc đầy đủ.</div>
+                            <div><span class="text-amber-400 font-bold">6. Tuyệt đối không gian lận thi cử:</span> Không lạm dụng AI để làm bài hộ hoặc thi hộ.</div>
+                            <div><span class="text-amber-400 font-bold">7. Sử dụng để phát triển kỹ năng:</span> Thúc đẩy năng lực số cá nhân thay vì phụ thuộc hoàn toàn vào công cụ.</div>
+                        </div>
+                    `
+                }
+            }
+        };
+
+        // Open specific Quest Terminal modal and render content
+        function openQuestDetails(levelNum) {
+            activeLevel = levelNum;
+            activeTab = 1;
+
+            const data = QUEST_DATA[levelNum];
+            document.getElementById('modal-level-title').innerText = `${data.level} | ${data.week}`;
+            document.getElementById('modal-quest-title').innerText = data.title;
+
+            renderTabContent();
+            document.getElementById('quest-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Render content based on active tab
+        function renderTabContent() {
+            // Update Tab active styles
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`tab-btn-${i}`);
+                if (i === activeTab) {
+                    btn.classList.add('border-amber-500', 'text-amber-500', 'font-bold');
+                    btn.classList.remove('border-transparent', 'text-army-400');
+                } else {
+                    btn.classList.remove('border-amber-500', 'text-amber-500', 'font-bold');
+                    btn.classList.add('border-transparent', 'text-army-400');
+                }
+            }
+
+            const activeContentHtml = QUEST_DATA[activeLevel].tabs[activeTab];
+            document.getElementById('modal-tab-content').innerHTML = activeContentHtml;
+        }
+
+        // Switch Tab within Console Modal
+        function switchTab(tabNum) {
+            activeTab = tabNum;
+            renderTabContent();
+        }
+
+        function closeQuestModal() {
+            document.getElementById('quest-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Sparkle Particles Spawn effect
+        function spawnSparkleBurst(x, y) {
+            const symbols = ['✦', '★', '✨', '✴', '✳'];
+            const container = document.body;
+
+            for (let i = 0; i < 15; i++) {
+                const p = document.createElement('div');
+                p.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+                p.className = 'particle font-mono text-amber-500';
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+
+                // Random directions for translations
+                const tx = (Math.random() - 0.5) * 160;
+                const ty = (Math.random() - 0.5) * 160;
+                p.style.setProperty('--tw-translate-x', `${tx}px`);
+                p.style.setProperty('--tw-translate-y', `${ty}px`);
+
+                container.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        }
+
+        // Floating "+XP" indicator text animation
+        function spawnXpFloat(x, y, amount) {
+            const xp = document.createElement('div');
+            xp.innerText = `+${amount} XP`;
+            xp.className = 'absolute font-game text-[9px] text-amber-400 font-bold select-none pointer-events-none z-50 animate-float-xp';
+            xp.style.left = `${x - 20}px`;
+            xp.style.top = `${y - 15}px`;
+
+            document.body.appendChild(xp);
+            setTimeout(() => xp.remove(), 1000);
+        }
+
+        // Toggle completion check for the levels
+        function toggleLevel(levelNum, event) {
+            levelStates[levelNum] = !levelStates[levelNum];
+            
+            const btn = document.getElementById(`btn-${levelNum}`);
+            const indicator = document.getElementById(`indicator-${levelNum}`);
+            const num = document.getElementById(`num-${levelNum}`);
+
+            // Spawn visual pixel game effects at pointer position
+            if (levelStates[levelNum]) {
+                spawnSparkleBurst(event.pageX, event.pageY);
+                spawnXpFloat(event.pageX, event.pageY, 200);
+
+                btn.innerHTML = "ĐÃ VƯỢT ẢI ✓";
+                btn.classList.remove('bg-army-900', 'hover:bg-amber-500', 'hover:text-army-950', 'border-amber-500');
+                btn.classList.add('bg-green-700', 'text-white', 'border-green-500');
+                
+                indicator.classList.remove('bg-army-950', 'border-army-600');
+                indicator.classList.add('bg-amber-500', 'border-amber-400');
+                
+                num.classList.remove('text-army-300');
+                num.classList.add('text-army-950', 'font-bold');
+            } else {
+                btn.innerHTML = "Xác nhận vượt ải";
+                btn.classList.remove('bg-green-700', 'text-white', 'border-green-500');
+                btn.classList.add('bg-army-900', 'hover:bg-amber-500', 'hover:text-army-950', 'border-amber-500');
+                
+                indicator.classList.remove('bg-amber-500', 'border-amber-400');
+                indicator.classList.add('bg-army-950', 'border-army-600');
+                
+                num.classList.remove('text-army-950', 'font-bold');
+                num.classList.add('text-army-300');
+            }
+
+            updateProgress();
+        }
+
+        // Update overall progress
+        function updateProgress() {
+            const total = Object.keys(levelStates).length;
+            const completed = Object.values(levelStates).filter(state => state === true).length;
+            const percentage = Math.round((completed / total) * 100);
+
+            document.getElementById('progress-text').innerText = `${percentage}% Completed`;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+
+            const chestStatus = document.getElementById('chest-status');
+            const chestInstruction = document.getElementById('chest-instruction');
+            const chestGlow = document.getElementById('chest-glow');
+
+            if (completed === total) {
+                chestStatus.innerText = "HỆ THỐNG ĐÃ MỞ KHÓA!";
+                chestStatus.classList.remove('text-army-400');
+                chestStatus.classList.add('text-amber-500', 'text-glow-amber');
+                chestInstruction.innerText = "Click vào chiếc rương để nhận báu vật";
+                chestInstruction.classList.remove('text-army-500');
+                chestInstruction.classList.add('text-slate-100', 'font-bold');
+                chestGlow.classList.remove('scale-0');
+                chestGlow.classList.add('scale-100');
+            } else {
+                chestStatus.innerText = "RƯƠNG ĐANG KHÓA";
+                chestStatus.classList.remove('text-amber-500', 'text-glow-amber');
+                chestStatus.classList.add('text-army-400');
+                chestInstruction.innerText = `Đánh dấu hoàn thành toàn bộ 6 Level bên trên để mở khóa`;
+                chestInstruction.classList.remove('text-slate-100', 'font-bold');
+                chestInstruction.classList.add('text-slate-200');
+                chestGlow.classList.remove('scale-100');
+                chestGlow.classList.add('scale-0');
+            }
+        }
+
+        // Open Final Vault (The locked chest logic)
+        function attemptOpenChest() {
+            const completed = Object.values(levelStates).filter(state => state === true).length;
+            if (completed < 6) {
+                const chestLocked = document.getElementById('chest-locked');
+                chestLocked.classList.add('animate-bounce');
+                setTimeout(() => {
+                    chestLocked.classList.remove('animate-bounce');
+                }, 1000);
+                alert("Bạn phải dũng cảm vượt qua và đánh dấu Hoàn Thành cả 6 Level nhiệm vụ để tháo gỡ bẫy khóa bảo vệ chiếc rương!");
+                return;
+            }
+
+            document.getElementById('chest-locked').classList.add('hidden');
+            document.getElementById('chest-open').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('reward-modal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }, 400);
+        }
+
+        function closeRewardModal() {
+            document.getElementById('reward-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+            document.getElementById('chest-open').classList.add('hidden');
+            document.getElementById('chest-locked').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
